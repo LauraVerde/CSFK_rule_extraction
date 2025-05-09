@@ -1,0 +1,25 @@
+# Esclude i file di configurazione PyCharm
+.idea/
+*.iml
+
+# Esclude ambienti virtuali Python
+venv/
+env/
+
+# Esclude file temporanei e cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Esclude dati Jupyter (se usi notebook)
+.ipynb_checkpoints/
+
+# Esclude file di log e backup
+*.log
+*.bak
+*.tmp
+
+# Esclude file di sistema
+.DS_Store
+Thumbs.db
