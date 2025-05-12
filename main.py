@@ -1,178 +1,142 @@
 import os
-
-import pandas as pd
-import numpy as np
-from matplotlib import pyplot as plt
-import seaborn as sns
-
-from matplotlib_venn import venn2  # aggiungi in tesi
-#from sklearn.feature_selection import mutual_info_classif
-#from sklearn.model_selection import train_test_split
-#from sklearn.ensemble import RandomForestClassifier
-#from sklearn.preprocessing import StandardScaler
-import sys  # utilizzato per il reindirizzamento dell'output a file esterni
-import category_encoders as ce  # Il Target Encoding è una tecnica di codifica utilizzata per convertire variabili
-# categoriali in variabili numeriche, sfruttando la relazione tra ogni categoria e la variabile target.
-#from sklearn.preprocessing import MinMaxScaler
-from imblearn.over_sampling import SMOTE
-from collections import Counter
-
-from sklearn.tree import export_text
-
-import preprocessing
-import classification
-
-
-import sklearn
-import category_encoders
+import sys
 import warnings
-
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import mutual_info_classif
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
+import category_encoders
+import numpy as np
+import pandas as pd
+import sklearn
+from sklearn.tree import export_text
+import classification
+import preprocessing
 import rule_extraction
+from packaging import version
 
 
 def read_file(filename):
     current_directory = os.path.dirname(os.path.abspath(__file__))
     filepath = os.path.join(current_directory, filename)
-    df = pd.read_excel(filepath)
-    return df
+    dataframe = pd.read_excel(filepath)
+    return dataframe
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print(sklearn.__version__)  # Assicurati che sia almeno 1.2+
-    print(category_encoders.__version__)  # Dovrebbe essere almeno 2.6+
+def sanity_check():
+    sklearn_msg = f"scikit-learn >= 1.2 required, found {sklearn.__version__}"
+    assert version.parse(sklearn.__version__) >= version.parse("1.2"), sklearn_msg
+    category_encoders_msg = f"category_encoders >= 2.6 required, found {category_encoders.__version__}"
+    assert version.parse(category_encoders.__version__) >= version.parse("2.6"), category_encoders_msg
+
+def boot():
     pd.set_option('future.no_silent_downcasting', True)
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
-    # Apri un file di testo per l'output
+if __name__ == '__main__':
+    dataset_filename = sys.argv[1]
+    sanity_check()
+    boot()
     with open('output.txt', 'w') as f:
-        sys.stdout = f  # Reindirizza stdout al file
-
-        # name = r'C:\Users\User\PycharmProjects\pythonProject\Tesi\DT_Tesi_Roberta_Giusy_ripulito_da_Pierluigi.xls'
-        name = r'C:\Users\Laura Verde\Documents\Vanvitelli\TAF-D + tesi\Roberta-Giusy\DT_Tesi_Roberta_Giusy_ripulito_da_Pierluigi.xls'
-        df = read_file(name)
+        sys.stdout = f
+        df = read_file(dataset_filename)
         df = df.fillna('nn')
-
-        print("I numeri di righe e colonne del nostro data set sono rispettivamente: \n", df.shape)
-        df.drop(df.columns[20:41], axis=1, inplace=True)  # Sono tutte le colonne riguardanti i dati della prima visita
-        # che non ci interessano.
-
-        # In giallo sono presenti i dati che è possibile ricavare dagli altri dati, ne elimino alcune.
-        # Poiché ho gia eliminato in precedenza delle colonne, devo togliere 21 agli indici maggiori di 21
-        # df.drop(df.columns[[16, 52-21, 94-21, 98-21, 99-21, 115-21, 116-21, 119-21, 121-21, 122-21]],axis=1,
-        # inplace=True)
+        print("The number of rows and columns of our dataset are respectively: \n", df.shape)
+        df.drop(df.columns[20:41], axis=1, inplace=True)
+        # These are all columns concerning the first visit data, which are not relevant.
+        # The highlighted data can be derived from other columns, so we remove some of them.
+        # Since some columns were already removed earlier, we subtract 21 from indices > 21.
         df.drop(df.columns[[99 - 21, 100 - 21, 107 - 21, 106 - 21, 110 - 21]], axis=1, inplace=True)
-        print("Successivamente, i numeri di righe e colonne del nostro data set sono rispettivamente: \n", df.shape)
-
-        # Uso il metodo loc per eliminare le colonne con nomi duplicati mantenendo solo la prima occorrenza
+        print("Afterwards, the number of rows and columns of our dataset are respectively: \n", df.shape)
+        # Remove duplicate column names, keeping only the first occurrence
         df = df.loc[:, ~df.columns.duplicated()]
         df.replace("nn", np.nan)
         df = df.drop('Creat II', axis=1)
         df.infer_objects(copy=False)
 
-        # Modifico le opzioni di visualizzazione per mostrare più righe
+        # Adjust display options to show more rows
         pd.set_option('display.max_rows', None)
-        print("Tipi colonne", df.dtypes)
-
+        print("Column types", df.dtypes)
 
         df = preprocessing.detect_and_convert_to_boolean(df)
-        # Modifico le opzioni di visualizzazione per mostrare più righe
-        #print("I tipi errati sono stati corretti \n", df.dtypes)  # non so se è opportuno lasciare sta print
+        # Uncomment to print data types after correction
+        # print("Incorrect types have been corrected \n", df.dtypes)
         pd.reset_option('display.max_rows')
-
         df = preprocessing.fill_missing_values(df)
-        # Modifico le opzioni di visualizzazione per mostrare più righe
+        # Uncomment to view summary of all columns
         # pd.set_option('display.max_columns', None)
-        #print("Riepilogo di tutte le colonne \n", df.describe(include="all"))
-
-
+        # print("Summary of all columns \n", df.describe(include="all"))
 
         X = df.drop(['DANNO EPI', '_1'], axis=1)
         Y = df['DANNO EPI']
 
+        X = preprocessing.data_econder(X, Y)
 
-        X=preprocessing.data_econder(X,Y)
-
-        # salvo file pre-processato
-        df_finale = pd.concat([X, Y], axis=1)
-        df_finale.to_csv(r'C:\Users\Laura Verde\Documents\Vanvitelli\Articoli\KES 2025\code\dataset_pre-processato.csv', index=False)
-
-
+        # Save the preprocessed dataset
+        df_final = pd.concat([X, Y], axis=1)
+        df_final.to_csv(r'preprocessed_dataset.csv',index=False)
         X, Y = preprocessing.smote_augmentation(X, Y)
+        mi_scores = preprocessing.MI_feature(X, Y)
+        # Mutual Information returns an array of scores, one per feature.
+        # Higher scores indicate greater dependency with the target variable.
 
-        mi_scores = preprocessing.MI_feature(X,Y)
-        # La mutual information classification restituisce un array di punteggi, uno per ogni caratteristica.
-        # Maggiore è il valore, maggiore è la dipendenza tra quella feature e la variabile target
-
-        # Creo ora un dataframe che mi permette di visualizzare i punteggi
-        mi_df = pd.DataFrame({'Feature': X.columns, 'MI Score': mi_scores})  # X.columns mi dà il nome delle col. di X
-        # adesso ordino il dataframe creato sopra in base ai punteggi di mutual information
+        # Create DataFrame to visualize MI scores
+        mi_df = pd.DataFrame({'Feature': X.columns, 'MI Score': mi_scores})
         mi_df = mi_df.sort_values(by='MI Score', ascending=False)
 
-        # Utilizzo la funzione per il boxplot e ne creo uno per i punteggi MI
-        preprocessing.funzione_boxplot(mi_df, 'MI Score', '', 'Mutual Information Score',
-                         '', save_plot=True, filename='mi_boxplot.png')
+        # Generate boxplot for MI scores
+        preprocessing.funzione_boxplot(mi_df, 'MI Score', '', 'Mutual Information Score', '', save_plot=True,
+                                       filename='mi_boxplot.png')
 
-        percentiles = [25, 75, 90]  # Lista variabile dei percentili.
-        top_n = 30  # Numero delle top feature che seleziono, in genere infatti si seleziona l 20/30% delle variabili,
-        # nel nostro caso dato che le variabili sono 102 ne ho considerate 30
-        df_bd_mi, top_features_mi = preprocessing.grafico_caratteristiche_selezionate(mi_df, 'MI Score', percentiles, top_n,
-                                                                        f'Top Feature - Mutual Information Scores ({percentiles}° Percentile)',
-                                                                        'Mutual Information Score', 'Feature',
-                                                                        save_plot=False, filename='MI_plot.png',
-                                                                        csv_filename='feature_mi.csv')
+        percentiles = [25, 75, 90]  # List of percentiles
+        top_n = 30  # Selecting top features (approx. 30% of total 102 features)
 
-        # Feature Importance with Random Forest
-        importances=preprocessing.FI_feature(X,Y)
-        # Creazione di un DataFrame per visualizzare le caratteristiche importanti (con gli score come fatto per la MI)
+        df_bd_mi, top_features_mi = preprocessing.grafico_caratteristiche_selezionate(
+            mi_df, 'MI Score', percentiles, top_n,
+            f'Top Feature - Mutual Information Scores ({percentiles}° Percentile)',
+            'Mutual Information Score', 'Feature',
+            save_plot=False, filename='MI_plot.png',
+            csv_filename='feature_mi.csv'
+        )
+
+        # Feature Importance via Random Forest
+        importances = preprocessing.FI_feature(X, Y)
         importance_df = pd.DataFrame({'Feature': X.columns, 'Importance': importances})
-        importance_df.sort_values(by='Importance', ascending=False, inplace=True)  # proprio come per la MI
+        importance_df.sort_values(by='Importance', ascending=False, inplace=True)
 
-        # Creo un boxplot per gli FI scores
-        preprocessing.funzione_boxplot(importance_df, 'Importance', '',
-                         'Feature Importance Score', '', save_plot=True, filename='fi_boxplot.png')
+        preprocessing.funzione_boxplot(importance_df, 'Importance', '', 'Feature Importance Score', '',
+                                       save_plot=True, filename='fi_boxplot.png')
 
         percentiles = [25, 75, 90]
         top_n = 30
-        df_bd_fi, top_features_fi = preprocessing.grafico_caratteristiche_selezionate(importance_df, 'Importance', percentiles, top_n,
-                                                                        f'Top {top_n} Feature - Random Forest ({percentiles}° Percentile)',
-                                                                        'Punteggio di Importanza', 'Feature',
-                                                                        save_plot=False,
-                                                                        filename='RF_plot.png',
-                                                                        csv_filename='feature_fi.csv')
+        df_bd_fi, top_features_fi = preprocessing.grafico_caratteristiche_selezionate(
+            importance_df, 'Importance', percentiles, top_n,
+            f'Top {top_n} Feature - Random Forest ({percentiles}° Percentile)',
+            'Importance Score', 'Feature',
+            save_plot=False, filename='RF_plot.png',
+            csv_filename='feature_fi.csv'
+        )
 
-        # aggiungere
-        # Questo comando mi serve per porre fine alla scrittura nel file delle print
+        # End of file writing block
         sys.stdout = sys.__stdout__
 
+        # Classification tasks using both feature selection methods
+        classification.test_cases(X, Y, 'feature_mi.csv', 4, 1, [1, 2, 3])
+        classification.test_cases(X, Y, 'feature_fi.csv', 4, 1, [1, 2, 3])
 
-
-        # CLASSIFICATION
-        classification.vari_casi(X, Y, 'feature_mi.csv', 4, 1, [1, 2, 3])
-        classification.vari_casi(X, Y, 'feature_fi.csv', 4, 1, [1, 2, 3])
-
-        log_file = open(f'results_classification.txt', 'w')
-        sys.stdout = log_file  # Reindirizziamo l'output al file di log
+        log_file = open('results_classification.txt', 'w')
+        sys.stdout = log_file
         foresta_tot, Y1_pred_foresta, Y1_test_foresta = classification.random_forest(X, Y, 4, 1)
-        valutazione_foresta = classification.valutazione_modello(Y1_test_foresta, Y1_pred_foresta, foresta_tot, X, Y)
+        valutazione_foresta = classification.evaluate_model(Y1_test_foresta, Y1_pred_foresta, foresta_tot, X, Y)
 
         for misura in [1, 2, 3]:
-            print(f"\n valutazione su tutte le feature cambiando lunghezza del DT_misura_{misura}")
+            print(f"\n Evaluation using all features, changing tree depth (DT_misura_{misura})")
             albero_tot, Y2_pred_albero, Y2_test_albero = classification.decision_tree(X, Y, misura)
-            valutazione_albero = classification.valutazione_modello(Y2_test_albero, Y2_pred_albero, albero_tot, X, Y)
+            valutazione_albero = classification.evaluate_model(Y2_test_albero, Y2_pred_albero, albero_tot, X, Y)
+
         log_file.close()
         sys.stdout = sys.__stdout__
 
-        #classification.process_files(r'C:\Users\Laura Verde\Documents\Vanvitelli\Articoli\KES 2025\code\dataset_pre-processato.csv', 'feature_mi.csv', 'MI_90.csv')
         classification.process_files(
-            r'C:\Users\Laura Verde\Documents\Vanvitelli\Articoli\KES 2025\code\dataset_pre-processato.csv',
+            r'preprocessed_dataset.csv',
             'feature_fi.csv', 'FI_90.csv')
 
-        #Rule-extraction
+        # Rule Extraction
         name = 'FI_90.csv'
         df = pd.read_csv(name)
         X = df.drop(columns=["DANNO EPI"])
@@ -180,34 +144,23 @@ if __name__ == '__main__':
 
         best_rf = rule_extraction.classification(X, Y)
 
-        # Initializing an empty list to store rules from decision trees
+        # Extract rules from individual decision trees
         rules = []
-
-        # Iterating through each decision tree in the random forest
         for tree in best_rf.estimators_:
-            # Exporting the structure of the decision tree as text and appending it to the rules list
             r = export_text(tree, feature_names=list(X.columns), show_weights=True, max_depth=10)
             rules.append(r)
 
-        # Printing rules of the first 4 decision trees
         for rule in rules[:4]:
             print(rule)
 
-        # Getting feature names from the DataFrame df_train, excluding the target variable column
         feature_names = X.columns
-
-        # Creating an empty list to store the rules from each tree
         rules_list = []
 
-        # Iterating through each decision tree in the random forest to collect rules
         for tree in best_rf.estimators_:
             rules = rule_extraction.get_rules(tree, feature_names)
             rules_list.extend(rules)
 
-        # Converting the list of dictionaries into a DataFrame
         rules_df = pd.DataFrame(rules_list)
-
-        # Renaming columns for better interpretation
         rules_df.rename(columns={"rule": "Feature Rule"}, inplace=True)
         rules_df = rules_df[rules_df["class"] == 1].copy()
         rules_df.drop("class", axis=1, inplace=True)
@@ -215,14 +168,9 @@ if __name__ == '__main__':
         rules_df.rename(columns={"proba": "Fraud Probability"}, inplace=True)
         rules_df.reset_index(drop=True, inplace=True)
 
-        # Displaying the first 5 rows of the rules DataFrame
-        rules_df.head()
-
-        # Print best rules
         print('Feature Rules:', "\n")
         pd.set_option('display.max_colwidth', None)
         for item in rules_df['Feature Rule'][0:20]:
             print(item, "\n")
 
-        # Export best rules
         rules_df.to_csv('Random Forest Rules_mi.csv', index=False)

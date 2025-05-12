@@ -1,20 +1,14 @@
-# Importing necessary libraries
-import os
-
 import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.tree import _tree, export_text
 from sklearn.ensemble import RandomForestClassifier
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.tree import _tree
+
 
 def classification (X,Y):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=0)
     best_rf = RandomForestClassifier(n_estimators=4, max_depth=2, criterion='gini', random_state=0, n_jobs=1)
     best_rf.fit(X_train, Y_train)
-
     return best_rf
-
 
 # Defining function to extract rules from a decision tree
 def get_rules(tree, feature_names):
@@ -24,7 +18,6 @@ def get_rules(tree, feature_names):
         feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
         for i in tree_.feature
     ]
-
     paths = []  # List to store all the paths (rules) in the tree
     path = []  # Temporary list to store the current path
 
@@ -74,6 +67,5 @@ def get_rules(tree, feature_names):
             'samples': samples,
             'proba': proba
         })
-
     return rules
 
