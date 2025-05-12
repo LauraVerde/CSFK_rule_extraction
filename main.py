@@ -29,7 +29,7 @@ def clean():
     for extension in extensions:
         removed_files = []
         for filename in os.listdir('./'):
-            if filename.endswith(extension):
+            if filename.endswith(extension) and filename != "requirements.txt":
                 file_path = os.path.join('./', filename)
                 try:
                     os.remove(file_path)
