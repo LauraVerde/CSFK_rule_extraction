@@ -8,12 +8,6 @@ from sklearn.tree import _tree, export_text
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
 
-def read_file(filename):
-    current_directory = os.path.dirname(os.path.abspath(__file__))
-    filepath = os.path.join(current_directory, filename)
-    df = pd.read_csv(filepath)
-    return df
-
 def classification (X,Y):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=0)
     best_rf = RandomForestClassifier(n_estimators=4, max_depth=2, criterion='gini', random_state=0, n_jobs=1)
@@ -83,59 +77,3 @@ def get_rules(tree, feature_names):
 
     return rules
 
-
-
-if __name__ == '__main__':
-    name = 'FI_90.csv'
-    df = read_file(name)
-    X = df.drop(columns=["DANNO EPI"])
-    Y = df["DANNO EPI"]
-
-    best_rf=classification(X,Y)
-
-    # Initializing an empty list to store rules from decision trees
-    rules = []
-
-    # Iterating through each decision tree in the random forest
-    for tree in best_rf.estimators_:
-        # Exporting the structure of the decision tree as text and appending it to the rules list
-        r = export_text(tree, feature_names=list(X.columns), show_weights=True, max_depth=10)
-        rules.append(r)
-
-    # Printing rules of the first 4 decision trees
-    for rule in rules[:4]:
-        print(rule)
-
-    # Getting feature names from the DataFrame df_train, excluding the target variable column
-    feature_names = X.columns
-
-    # Creating an empty list to store the rules from each tree
-    rules_list = []
-
-    # Iterating through each decision tree in the random forest to collect rules
-    for tree in best_rf.estimators_:
-        rules = get_rules(tree, feature_names)
-        rules_list.extend(rules)
-
-    # Converting the list of dictionaries into a DataFrame
-    rules_df = pd.DataFrame(rules_list)
-
-    # Renaming columns for better interpretation
-    rules_df.rename(columns={"rule": "Feature Rule"}, inplace=True)
-    rules_df = rules_df[rules_df["class"] == 1].copy()
-    rules_df.drop("class", axis=1, inplace=True)
-    rules_df.rename(columns={"samples": "Total Samples"}, inplace=True)
-    rules_df.rename(columns={"proba": "Fraud Probability"}, inplace=True)
-    rules_df.reset_index(drop=True, inplace=True)
-
-    # Displaying the first 5 rows of the rules DataFrame
-    rules_df.head()
-
-    # Print best rules
-    print('Feature Rules:', "\n")
-    pd.set_option('display.max_colwidth', None)
-    for item in rules_df['Feature Rule'][0:20]:
-        print(item, "\n")
-
-    # Export best rules
-    rules_df.to_csv('Random Forest Rules_mi.csv', index=False)

@@ -14,11 +14,6 @@ import time
 import gc
 import tracemalloc
 
-def read_file(filename):
-    current_directory = os.path.dirname(os.path.abspath(__file__))
-    filepath = os.path.join(current_directory, filename)
-    df = pd.read_csv(filepath)
-    return df
 
 def misura_tempo_modello(modello,X,Y, n_repeats=5): #mi calcolo la media
     tempi = []  #Lista per memorizzare i tempi di esecuzione validi
@@ -171,35 +166,5 @@ def process_files(file1_path, file2_path, output_path):
     print(f"File salvato come {output_path}")
     print(df_output)
 
-
-
-
-if __name__ == '__main__':
-    #name = 'dataset_pre-processato.csv'
-    name = 'dataset_pre-processato_2.csv'
-    #name = 'dataset_pre-processato_comune.csv'
-    #name = r'C:\Users\Laura Verde\Documents\Vanvitelli\TAF-D + tesi\Roberta-Giusy\DT_Tesi_Roberta_Giusy_ripulito_da_Pierluigi_modificato.xls'
-    df = read_file(name)
-    X = df.drop(columns=["DANNO EPI"])
-    Y = df["DANNO EPI"]
-
-    # prima prova
-    vari_casi(X, Y, 'feature_mi.csv', 4, 1, [1, 2, 3])
-    vari_casi(X, Y, 'feature_fi.csv', 4, 1, [1, 2, 3])
-
-    log_file = open(f'results_Laura_S4.txt', 'w')
-    sys.stdout = log_file  # Reindirizziamo l'output al file di log
-    foresta_tot, Y1_pred_foresta, Y1_test_foresta = random_forest(X, Y, 4, 1)
-    valutazione_foresta = valutazione_modello(Y1_test_foresta, Y1_pred_foresta, foresta_tot, X, Y)
-
-    for misura in [1, 2, 3]:
-        print(f"\n valutazione su tutte le feature cambiando lunghezza del DT_misura_{misura}")
-        albero_tot, Y2_pred_albero, Y2_test_albero = decision_tree(X, Y, misura)
-        valutazione_albero = valutazione_modello(Y2_test_albero, Y2_pred_albero, albero_tot, X, Y)
-    log_file.close()
-    sys.stdout = sys.__stdout__
-
-    # Esegui la funzione
-    process_files('dataset_pre-processato_2.csv', 'feature_mi.csv', 'MI_90.csv')
 
 
