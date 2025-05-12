@@ -1,108 +1,91 @@
-import os
 import sys
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
 from sklearn.tree import export_text, DecisionTreeClassifier
-from sklearn import tree
 import time
 import gc
 import tracemalloc
 
-
-def misura_tempo_modello(modello,X,Y, n_repeats=5): #mi calcolo la media
-    tempi = []  #Lista per memorizzare i tempi di esecuzione validi
-    while len(tempi) < n_repeats:
+def measure_model_time(model, X, Y, n_repeats=5):
+    times = []  # List to store valid execution times
+    while len(times) < n_repeats:
         start_time = time.process_time_ns()
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=0)
-        modello.fit(X_train, Y_train)
-        Y_pred = modello.predict(X_test)
+        model.fit(X_train, Y_train)
+        Y_pred = model.predict(X_test)
         end_time = time.process_time_ns()
-        tempo_esecuzione = end_time - start_time
-        if tempo_esecuzione > 0:
-            tempi.append(tempo_esecuzione)
-    # Calcola la media dei tempi di esecuzione validi
-    tempo_medio = np.mean(tempi)
-    print(f"Tempo medio di training e testing: {tempo_medio:.1e} nanosecondi")
+        elapsed_time = end_time - start_time
+        if elapsed_time > 0:
+            times.append(elapsed_time)
+    average_time = np.mean(times)
+    print(f"Average training and testing time: {average_time:.1e} nanoseconds")
 
-def misura_spazio_modello(modello, X, Y, n_repeats=5):
-    spazi = []  # Lista per memorizzare lo spazio di memoria occupato in ciascuna ripetizione
+def measure_model_memory(model, X, Y, n_repeats=5):
+    memories = []  # List to store memory usage in each repeat
     for _ in range(n_repeats):
         gc.collect()
         tracemalloc.start()
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=0)
-        modello.fit(X_train, Y_train)
-        Y_pred = modello.predict(X_test)
-        spazio, picco = tracemalloc.get_traced_memory()
+        model.fit(X_train, Y_train)
+        Y_pred = model.predict(X_test)
+        memory, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
-        spazi.append(spazio)  # Aggiungi lo spazio alla lista
+        memories.append(memory)
+    average_memory = np.mean(memories)
+    print("Average actual memory used: {:.1e} bytes".format(average_memory))
+    return Y_pred, model, Y_test
 
-    # Calcola la media degli spazi
-    spazio_medio = np.mean(spazi)
+def random_forest(X, Y, num_trees, max_depth):
+    rf = RandomForestClassifier(n_estimators=num_trees, max_depth=max_depth, criterion='gini', random_state=0, n_jobs=1)
+    Y_pred, trained_rf, Y_test = measure_model_memory(rf, X, Y)
+    measure_model_time(rf, X, Y)
+    return trained_rf, Y_pred, Y_test
 
-    # Stampa i risultati con meno cifre significative
-    print("Lo spazio medio occupato reale è: {:.1e} byte".format(spazio_medio))
-    return Y_pred, modello, Y_test
+def decision_tree(X, Y, max_depth):
+    tree_model = DecisionTreeClassifier(max_depth=max_depth, criterion='gini', random_state=0)
+    Y_pred, trained_tree, Y_test = measure_model_memory(tree_model, X, Y)
+    measure_model_time(tree_model, X, Y)
 
-def random_forest(X, Y, num_alberi, depth1):
-    rf = RandomForestClassifier(n_estimators=num_alberi, max_depth=depth1, criterion='gini', random_state=0, n_jobs=1)
-    Y_pred, rf_add, Y_test= misura_spazio_modello(rf, X, Y)
-    misura_tempo_modello(rf, X,Y)
-    return rf_add, Y_pred, Y_test
-
-def decision_tree(X, Y, depth2):
-    # numero_chiamate = 0
-    # numero_chiamate += 1
-    albero = DecisionTreeClassifier(max_depth=depth2, criterion='gini', random_state=0)
-    Y_pred, dt_add, Y_test = misura_spazio_modello(albero, X, Y)
-    misura_tempo_modello(albero, X, Y)
-
-    ''' # Visualizzazione dell'albero decisionale #non serve per le varie prove
+    '''
+    # Decision tree visualization (not used in tests)
     plt.figure(figsize=(10, 10))
-    tree.plot_tree(albero, feature_names=X.columns, class_names=[str(cl)for cl in albero.classes_], filled=True)
-    plt.title(f"Visualizzazione grafica dell'albero")
-    plt.savefig(f"albero_{numero_chiamate}.png")
+    tree.plot_tree(tree_model, feature_names=X.columns, class_names=[str(cl) for cl in tree_model.classes_], filled=True)
+    plt.title("Graphical representation of the tree")
+    plt.savefig(f"tree_visualization.png")
     plt.show()
     plt.close()
 
-    # Visualizzare anche come testo
-    albero_testuale = export_text(albero, feature_names=list(X.columns))
-    print("Visualizzazione dell'Albero Decisionale (testuale):\n", albero_testuale)
+    # Textual representation of the tree
+    textual_tree = export_text(tree_model, feature_names=list(X.columns))
+    print("Textual Decision Tree Visualization:\n", textual_tree)
     '''
-    return dt_add, Y_pred, Y_test
+    return trained_tree, Y_pred, Y_test
 
-def valutazione_modello(Y_test, Y_pred, modello, X, Y):
+def evaluate_model(Y_test, Y_pred, model, X, Y):
     cm = confusion_matrix(Y_test, Y_pred)
-    print(f"Matrice di confusione:\n{cm}")
-    # Estrazione valori dalla matrice di confusione (per un problema binario)
-    TN = cm[0, 0]  # vero negativo, mi dice il posto della matrice in cui si trova
-    FP = cm[0, 1]  # falso positivo
-    FN = cm[1, 0]  # falso negativo
-    TP = cm[1, 1]  # vero positivo
+    print(f"Confusion Matrix:\n{cm}")
+    TN, FP = cm[0, 0], cm[0, 1]
+    FN, TP = cm[1, 0], cm[1, 1]
 
-    # Calcolo delle metriche derivate
-    accuracy = (TP+TN)/(TP+TN+FN+FP)
+    accuracy = (TP + TN) / (TP + TN + FN + FP)
     specificity = TN / (TN + FP) if (TN + FP) != 0 else 0
     precision = precision_score(Y_test, Y_pred, average='weighted')
-    recall = recall_score(Y_test, Y_pred,
-                          average='weighted')  # average...serve per dar maggior peso alle classi che hanno piu elementi nel dataset
+    recall = recall_score(Y_test, Y_pred, average='weighted')
     f1 = f1_score(Y_test, Y_pred, average='weighted')
 
-    cv_scores = cross_val_score(modello, X, Y, cv=5, n_jobs=1)
-    print(f"Accuratezza: {accuracy * 100:.2f}%")
-    print(f"Specificita': {specificity:.2f}")
+    cv_scores = cross_val_score(model, X, Y, cv=5, n_jobs=1)
+    print(f"Accuracy: {accuracy * 100:.2f}%")
+    print(f"Specificity: {specificity:.2f}")
     print(f"Precision: {precision:.2f}")
     print(f"Recall: {recall:.2f}")
     print(f"F1-score: {f1:.2f}")
     print(f"Cross-validation scores: {cv_scores}")
     print(f"Mean cross-validation score: {cv_scores.mean():.2f}")
 
-    # Restituiamo tutte le metriche in un dizionario
     return {
         'accuracy': accuracy,
         'specificity': specificity,
@@ -113,58 +96,39 @@ def valutazione_modello(Y_test, Y_pred, modello, X, Y):
         'cross_val_scores': cv_scores
     }
 
+def test_cases(X, Y, csv_file, num_trees, rf_depth, dt_depths):
+    selected_features = pd.read_csv(csv_file)
 
-def vari_casi(X, Y, file_csv, num_alberi, depth1, depth2):
-    caratteristiche_selezionate = pd.read_csv(file_csv)
+    for percentile in selected_features.columns:
+        log_file = open(f'{csv_file}_{percentile}.txt', 'w')
+        sys.stdout = log_file  # Redirect output to log file
+        features = selected_features[percentile].dropna().tolist()
 
-    for percentile in caratteristiche_selezionate.columns:
-        # 3 file csv in ogni file ho entrambi (alla volta 3 per fi 3 per mi )
-        log_file = open(f'{file_csv}_{percentile}.txt', 'w')
-        sys.stdout = log_file  # Reindirizziamo l'output al file di log
-        # Otteniamo i nomi delle feature per questo percentile
-        features_da_usare = caratteristiche_selezionate[percentile].dropna().tolist()
+        print("Evaluation of RF with fixed parameters")
+        rf_model, Y_pred_rf, Y_test_rf = random_forest(X[features], Y, num_trees, rf_depth)
+        rf_metrics = evaluate_model(Y_test_rf, Y_pred_rf, rf_model, X[features], Y)
 
-        print("valutazione RF con parametri fissati")
-        modello_foresta, Y_pred_foresta, Y_test_foresta = random_forest(X[features_da_usare], Y, num_alberi, depth1)
-        metriche_foresta = valutazione_modello(Y_test_foresta, Y_pred_foresta, modello_foresta,
-                                               X[features_da_usare], Y)
-
-        # Applica Decision Tree
-        for misura in depth2:  # fisso due parametri cambia il terzo in base alle prove (in questo caso vario la depth2)
-            print(f"\n valutazione DT_{misura}")
-            modello_albero, Y_pred_albero, Y_test_albero = decision_tree(X[features_da_usare], Y, misura)
-            metriche_albero = valutazione_modello(Y_test_albero, Y_pred_albero, modello_albero, X[features_da_usare], Y)
+        for depth in dt_depths:
+            print(f"\nEvaluation DT_{depth}")
+            dt_model, Y_pred_dt, Y_test_dt = decision_tree(X[features], Y, depth)
+            dt_metrics = evaluate_model(Y_test_dt, Y_pred_dt, dt_model, X[features], Y)
 
         log_file.close()
         sys.stdout = sys.__stdout__
 
 def process_files(file1_path, file2_path, output_path):
-    # Leggi i due file CSV
-    df1 = pd.read_csv(file1_path)  # File 1: contiene diverse colonne come "Creat II", "Load Sistolico", etc.
-    df2 = pd.read_csv(file2_path)  # File 2: contiene Percentile_25, Percentile_75, Percentile_90
+    df1 = pd.read_csv(file1_path)
+    df2 = pd.read_csv(file2_path)
 
-    # Estrai i valori corrispondenti alla colonna "Percentile_90" di File 2
-    percentiles_90 = df2['Percentile_90'].dropna().tolist()  # Lista dei valori di Percentile_90
-    # Aggiungi la colonna 'DANNO EPI' (se esiste) dal File 1
-    percentiles_90.append('DANNO EPI')
+    percentile_90 = df2['Percentile_90'].dropna().tolist()
+    percentile_90.append('DANNO EPI')
 
-    # Crea un dizionario per mappare i valori dal file 1 per ogni colonna in percentiles_90
     data = {}
-
-    for col in percentiles_90:
-        # Controlla se la colonna esiste in df1
+    for col in percentile_90:
         if col in df1.columns:
             data[col] = df1[col].tolist()
 
-    # Crea un nuovo DataFrame con le colonne corrispondenti a "Percentile_90"
     df_output = pd.DataFrame(data)
-
-    # Salva il risultato in un nuovo file CSV
     df_output.to_csv(output_path, index=False)
-
-    # Mostra il risultato finale (facoltativo)
-    print(f"File salvato come {output_path}")
+    print(f"File saved as {output_path}")
     print(df_output)
-
-
-
