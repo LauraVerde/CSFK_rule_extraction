@@ -24,6 +24,20 @@ def sanity_check():
     category_encoders_msg = f"category_encoders >= 2.6 required, found {category_encoders.__version__}"
     assert version.parse(category_encoders.__version__) >= version.parse("2.6"), category_encoders_msg
 
+def clean():
+    extensions = ['txt', 'png', 'csv']
+    for extension in extensions:
+        removed_files = []
+        for filename in os.listdir('./'):
+            if filename.endswith(extension):
+                file_path = os.path.join('./', filename)
+                try:
+                    os.remove(file_path)
+                    removed_files.append(filename)
+                except Exception as e:
+                    print(f"Failed to delete {file_path}: {e}")
+
+
 def boot():
     pd.set_option('future.no_silent_downcasting', True)
     warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -32,6 +46,7 @@ if __name__ == '__main__':
     dataset_filename = sys.argv[1]
     sanity_check()
     boot()
+    clean()
     with open('output.txt', 'w') as f:
         sys.stdout = f
         df = read_file(dataset_filename)
