@@ -121,7 +121,7 @@ def process_files(file1_path, file2_path, output_path):
     df2 = pd.read_csv(file2_path)
 
     percentile_90 = df2['Percentile_90'].dropna().tolist()
-    percentile_90.append('DAMAGE EPI')
+    percentile_90.append('DANNO EPI')
 
     data = {}
     for col in percentile_90:
