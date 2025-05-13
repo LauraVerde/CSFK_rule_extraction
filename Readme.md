@@ -24,7 +24,7 @@ This replication package includes:
 - Scripts for preprocessing the CSFK dataset  
 - Implementation of Random Forest training and evaluation  
 - Extraction of the rules learnt by the RF model (powered by [GabeOw's Random Forest Rule Extraction](https://github.
-  com/GabeOw/Random-Forest-Rule-Extraction/))
+  com/GabeOw/Random-Forest-Rule-Extraction/) )
 
 ---
 
