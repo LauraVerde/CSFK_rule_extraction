@@ -9,6 +9,7 @@
 - [Running the Code](#️-running-the-code)  
 - [Reproducibility](#-reproducibility)  
 - [License](#-license)  
+- [Acknowledgement](#-acknowledgements)  
 - [Contact](#-contact)
 
 ---
@@ -23,8 +24,7 @@ medical staff. To this aim, an ad-hoc dataset is used collecting different featu
 This replication package includes:
 - Scripts for preprocessing the CSFK dataset  
 - Implementation of Random Forest training and evaluation  
-- Extraction of the rules learnt by the RF model (powered by [GabeOw's Random Forest Rule Extraction](https://github.
-  com/GabeOw/Random-Forest-Rule-Extraction/) )
+- Extraction of the rules learnt by the RF model
 
 ---
 
@@ -73,6 +73,13 @@ This project is licensed under the [Apache License 2.0](https://www.apache.org/l
 See the [LICENSE](./LICENSE-2.0.txt) file for more details.
 
 ---
+
+## 🙏 Acknowledgements
+
+I would like to express my sincere gratitude to the individuals and organizations who contributed to the development 
+of this project. Extraction of the rules from RF model is powered by [GabeOw's Random Forest 
+Rule Extraction](https://github.com/GabeOw/Random-Forest-Rule-Extraction/).
+
 
 ## 📬 Contact
 
