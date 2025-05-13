@@ -23,7 +23,8 @@ medical staff. To this aim, an ad-hoc dataset is used collecting different featu
 This replication package includes:
 - Scripts for preprocessing the CSFK dataset  
 - Implementation of Random Forest training and evaluation  
-- Extraction of the rules learnt by the RF model
+- Extraction of the rules learnt by the RF model (powered by [GabeOw's Random Forest Rule Extraction](https://github.
+  com/GabeOw/Random-Forest-Rule-Extraction/))
 
 ---
 
@@ -40,8 +41,9 @@ pip install -r requirements.txt
 
 ## 📁 Dataset
 
-The dataset used in this repository is not publicly available. To obtain the dataset you must contact me. 
-The project contains an exceprt of the dataset.
+The full dataset of the patients is not publicly available: to ask for more information about the dataset, contact 
+the owner of this repository. This notwithstanding, the repository contains an excerpt of the dataset, used to test 
+the code.
 
 ---
 
@@ -51,16 +53,16 @@ The project contains an exceprt of the dataset.
 python main.py _dataset_name_
 ```
 
-As a result, the folder of the project contains all the intermediate datasets, the report in textual form and the images
-graphically describes the learnt model.
+As a result, the folder of the project contains all the intermediate file, the report in textual form and the images
+graphically describing the learned model.
 
 ---
 
 
 ## ▶️ Reproducibility
 
-The code here reported is enough to replicate the graphs reported in the paper. This notwithstanding, the exact results could
-be generated also with the presence of original dataset.
+The code here reported is enough to replicate the graphs reported in the paper while it works on the full dataset. 
+Currently, the partial dataset contained in the repository is used to test the code only.
 
 ---
 
